@@ -5,9 +5,15 @@ import Dropdown from './components/Dropdown';
 import ColorPicker from './components/ColorPicker';
 import TodoList from './components/TodoList';
 import TodoEditor from 'components/TodoEditor/TodoEditor';
-import Filter from 'components/Filter/Filter';
+import TodoFilter from 'components/TodoFilter/TodoFilter';
 import Form from 'components/Form/Form';
-import initialTodos from './todos.json';
+import Modal from 'components/Modal';
+import Clock from 'components/Clock';
+import Tabs from 'components/Tabs';
+import tabs from './tabs.json';
+import IconButton from 'components/IconButton';
+import { ReactComponent as AddIcon } from './icons/add.svg';
+// import initialTodos from './todos.json';
 
 const colorPickerOptions = [
   { label: 'red', color: '#F44336' },
@@ -20,17 +26,30 @@ const colorPickerOptions = [
 
 class App extends Component {
   state = {
-    todos: initialTodos,
+    todos: [],
     filter: '',
+    showModal: false,
   };
 
-  toggleCompleted = todoId => {
-    this.setState(({ todos }) => ({
-      todos: todos.map(todo =>
-        todo.id === todoId ? { ...todo, completed: !todo.completed } : todo
-      ),
-    }));
-  };
+  componentDidMount() {
+    const todos = localStorage.getItem('todos');
+    const parsedTodos = JSON.parse(todos);
+    if (parsedTodos) {
+      this.setState({ todos: parsedTodos });
+    }
+  }
+
+  componentDidUpdate(_, prevState) {
+    const nextTodos = this.state.todos;
+    const prevTodos = prevState.todos;
+    if (nextTodos !== prevTodos) {
+      localStorage.setItem('todos', JSON.stringify(nextTodos));
+    }
+
+    if (nextTodos.length > prevTodos.length && prevTodos.length !== 0) {
+      this.toggleModal();
+    }
+  }
 
   addTodo = text => {
     const todo = {
@@ -42,11 +61,21 @@ class App extends Component {
     this.setState(({ todos }) => ({
       todos: [todo, ...todos],
     }));
+
+    // this.toggleModal();
   };
 
   deleteTodo = todoId => {
     this.setState(prevState => ({
       todos: prevState.todos.filter(todo => todo.id !== todoId),
+    }));
+  };
+
+  toggleCompleted = todoId => {
+    this.setState(({ todos }) => ({
+      todos: todos.map(todo =>
+        todo.id === todoId ? { ...todo, completed: !todo.completed } : todo
+      ),
     }));
   };
 
@@ -74,22 +103,32 @@ class App extends Component {
     );
   };
 
+  toggleModal = () => {
+    this.setState(prevState => ({ showModal: !prevState.showModal }));
+  };
+
   render() {
-    const { todos, filter } = this.state;
+    const { todos, filter, showModal } = this.state;
     const completedTodosCount = this.getCompletedTodosCount();
     const visibleTodos = this.getVisibleTodos();
 
     return (
       <>
-        <h1>Стан компонента1</h1>
-        <Counter initialValue={10} />
-        <h1>Стан компонента2</h1>
-        <Dropdown />
-        <h1>Стан компонента3</h1>
-        <ColorPicker options={colorPickerOptions} />
-        <h1>Стан компонента4</h1>
-        <TodoEditor onSubmit={this.addTodo} />
-        <Filter value={filter} onChange={this.changeFilter} />
+        <Clock />
+        <h1>TODOS</h1>
+        {showModal && (
+          <Modal onClose={this.toggleModal}>
+            <h1>Add Todo</h1>
+            <TodoEditor onSubmit={this.addTodo} />
+            <button type="button" onClick={this.toggleModal}>
+              Close modal
+            </button>
+          </Modal>
+        )}
+        <IconButton onClick={this.toggleModal} aria-label="Add todo">
+          <AddIcon width="40" height="40" fill="white" />
+        </IconButton>
+        <TodoFilter value={filter} onChange={this.changeFilter} />
         <TodoList
           todos={visibleTodos}
           onDeleteTodo={this.deleteTodo}
@@ -97,8 +136,22 @@ class App extends Component {
           countDone={completedTodosCount}
           onToggleCompleted={this.toggleCompleted}
         />
+        <h1>Стан компонента1</h1>
+        <Tabs items={tabs} />
+        <br />
+        <h1>Стан компонента2</h1>
+        <Counter initialValue={10} />
+        <br />
+        <h1>Стан компонента3</h1>
+        <Dropdown />
+        <br />
+        <h1>Стан компонента4</h1>
+        <ColorPicker options={colorPickerOptions} />
+        <br />
         <h1>FORM</h1>
         <Form onSubmit={this.formSubmitHandler} />
+        <br />
+        <br />
       </>
     );
   }
